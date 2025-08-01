@@ -125,13 +125,14 @@
             width: 0;
             height: 0;
         }
-
-        #game-controls {
+        
+        /* Updated position for game buttons to be at the top */
+        #game-buttons {
             position: absolute;
-            bottom: 20px;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            display: flex;
+            display: none;
             align-items: center;
             gap: 20px;
             z-index: 10;
@@ -225,15 +226,6 @@
             fill: #fff;
             width: 40px;
             height: 40px;
-        }
-        
-        #game-buttons {
-            display: none;
-            margin-top: 20px;
-            gap: 20px; /* Space between buttons */
-            flex-direction: row; /* Buttons side-by-side */
-            justify-content: center;
-            align-items: center;
         }
         
         @keyframes pulse {
