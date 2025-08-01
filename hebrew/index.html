@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+        <html lang="he"> <!-- Changed language to Hebrew -->
+        <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>ללמוד אותיות עבריות</title> <!-- Changed title to Hebrew -->
+            <style>
+                body {
+                    font-family: "Arial Hebrew", "Helvetica Neue", Arial, sans-serif; /* Prioritize Hebrew font */
+                    text-align: center;
+                    padding: 20px;
+                    background-color: #f0f8ff;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh; /* Ensure it takes full viewport height */
+                    margin: 0;
+                    direction: rtl; /* Set overall direction to RTL for Hebrew */
+                }
+                h1 {
+                    color: #2e8b57;
+                    margin-bottom: 20px;
+                }
+                .game-container {
+                    background-color: #ffffff;
+                    padding: 25px;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 20px;
+                    width: 90%;
+                    max-width: 500px;
+                }
+                .image-display {
+                    background-color: #e6f7ff;
+                    border: 2px solid #a0d9ff;
+                    border-radius: 10px;
+                    padding: 15px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    width: 100%;
+                    max-width: 250px; /* Max width for image container */
+                    height: 250px; /* Fixed height for consistent layout */
+                    overflow: hidden; /* Hide overflow if image is larger */
+                }
+                .object-image {
+                    max-width: 100%;
+                    max-height: 100%;
+                    border-radius: 8px;
+                    object-fit: contain; /* Ensure image fits within bounds */
+                }
+                .input-section {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 10px;
+                    width: 100%;
+                }
+                label {
+                    font-size: 20px;
+                    color: #333;
+                    font-weight: bold;
+                }
+                #hebrew-input {
+                    font-size: 48px; /* Large font for Hebrew letter */
+                    width: 80px; /* Fixed width for single letter */
+                    height: 80px;
+                    text-align: center;
+                    border: 2px solid #ccc;
+                    border-radius: 8px;
+                    padding: 5px;
+                    box-sizing: border-box;
+                    direction: rtl; /* Important for Hebrew input */
+                    font-family: "Arial Hebrew", "Helvetica Neue", Arial, sans-serif; /* Ensure Hebrew font support */
+                }
+                #hebrew-input:focus {
+                    border-color: #2e8b57;
+                    outline: none;
+                    box-shadow: 0 0 8px rgba(46, 139, 87, 0.3);
+                }
+                .controls {
+                    display: flex;
+                    gap: 15px;
+                    margin-top: 10px;
+                }
+                button {
+                    font-size: 18px;
+                    padding: 12px 25px;
+                    background-color: #2e8b57;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    transition: background-color 0.3s ease, transform 0.2s ease;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                }
+                button:hover {
+                    background-color: #246b44;
+                    transform: translateY(-2px);
+                }
+                button:active {
+                    transform: translateY(0);
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                }
+                .feedback {
+                    font-size: 22px;
+                    margin-top: 15px;
+                    min-height: 30px; /* Reserve space for feedback */
+                    font-weight: bold;
+                }
+                .correct-feedback {
+                    color: #2e8b57;
+                }
+                .incorrect-feedback {
+                    color: #cc0000;
+                }
+                .score {
+                    font-size: 20px;
+                    color: #555;
+                    margin-top: 10px;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>ללמוד אותיות עבריות</h1> <!-- Translated heading -->
+            <div class="game-container">
+                <div class="image-display">
+                    <!-- Added onerror to display Hebrew word if image fails to load -->
+                    <img id="word-image" src="" alt="Object Image" class="object-image" onerror="this.onerror=null;this.src='https://placehold.co/250x250/ADD8E6/000000?text=' + encodeURIComponent(currentWord.word);">
+                </div>
+                <div class="input-section">
+                    <label for="hebrew-input">מהי האות הראשונה?</label> <!-- Translated label -->
+                    <input type="text" id="hebrew-input" maxlength="1" dir="rtl" lang="he" inputmode="text">
+                </div>
+                <div class="controls">
+                    <button id="check-button">בדוק תשובה</button> <!-- Translated button -->
+                    <button id="next-button">מילה הבאה</button> <!-- Translated button -->
+                </div>
+                <div class="feedback" id="feedback"></div>
+                <div class="score" id="score">ניקוד: 0</div> <!-- Translated score -->
+            </div>
+
+            <script>
+                const hebrewWords = [
+                    // Using new, more reliable image URLs from purepng.com
+                    { word: "כיסא", firstLetter: "כ", image: "https://purepng.com/public/uploads/large/antique-style-polished-chair-huo.png" }, // Chair
+                    { word: "שולחן", firstLetter: "ש", image: "https://purepng.com/public/uploads/large/purepng.com-tabletabledeskboardcook-tablefurniture-1701527998855osb4d.png" }, // Table
+                    { word: "מכונית", firstLetter: "מ", image: "https://purepng.com/public/uploads/large/purepng.com-blue-jaguar-f-type-luxury-sports-carcarvehicletransportjaguarsports-carluxury-car-9615246508952odg6.png" }, // Car
+                    { word: "ספר", firstLetter: "ס", image: "https://purepng.com/public/uploads/large/purepng.com-booksbookillustratedwrittenprintedliteratureclipart-1421526451707uyace.png" }, // Book
+                    { word: "עוגה", firstLetter: "ע", image: "https://purepng.com/public/uploads/large/purepng.com-chocolate-cakechocolatechocolate-cakecakechocolate-gateausweet-1411527231772loeeo.png" }, // Cake
+                    { word: "ילד", firstLetter: "י", image: "https://purepng.com/public/uploads/large/purepng.com-boypeoplemaleboykids-1121525108932efx8o.png" }, // Boy
+                    { word: "אופניים", firstLetter: "א", image: "https://purepng.com/public/uploads/large/purepng.com-bicyclebicyclesbicyclebikecyclehuman-poweredpedal-drivensingle-track-vehicletwo-wheels-1701528099466sgyun.png" }, // Bicycle
+                    { word: "מטוס", firstLetter: "מ", image: "https://purepng.com/public/uploads/large/purepng.com-white-passenger-plane-flying-on-skyairplaneplaneflyingsky-51519825617ocpu8.png" }, // Plane
+                    { word: "טיל", firstLetter: "ט", image: "https://purepng.com/public/uploads/large/purepng.com-clipart-rocketrocketflyingfire-401520865321rhvws.png" }, // Rocket
+                    { word: "חולצה", firstLetter: "ח", image: "https://purepng.com/public/uploads/large/purepng.com-blue-t-shirtclothingt-shirtt-shirtdressfashionclothshirt-691522330467vjhb0.png" }, // Shirt
+                    // New words from your provided links:
+                    { word: "בננה", firstLetter: "ב", image: "https://purepng.com/public/uploads/large/purepng.com-bananasbananabananasyellow-bananabotanically-a-berryedible-fruitherbaceousgenus-musa-17015271885754hnye.png" }, // Banana
+                    { word: "גלידה", firstLetter: "ג", image: "https://purepng.com/public/uploads/large/915079881832oaygeze2xrjo7hlqrtaxgeab4m95riivabgjmfbmw4wlxxn2rdb6lydx6neluui3n3vhhqxn0fp4lmicslwjoaqgx6o7simiykh.png" }, // Ice Cream
+                    { word: "לב", firstLetter: "ל", image: "https://purepng.com/public/uploads/large/red-glass-heart-u4r.png" }, // Heart
+                    { word: "ורד", firstLetter: "ו", image: "https://purepng.com/public/uploads/large/purepng.com-roseflowers-rose-red-rose-961524681149ik704.png" }, // Rose
+                    { word: "זברה", firstLetter: "ז", image: "https://purepng.com/public/uploads/large/purepng.com-zebrazebrastandingschiriafrican-animalblack-and-white-481521298247kyjqa.png" }, // Zebra
+                    { word: "דג", firstLetter: "ד", image: "https://purepng.com/public/uploads/large/91508177267srdcsjbza8a5nlhkgcqyazedzognroi3xsygtv5ylzqxlub4mkwh84fje6pm9zt146jtwj9ftibhrhikwuvrmgrivdqofvqogtew.png" }, // Candle
+                    { word: "פיל", firstLetter: "פ", image: "https://purepng.com/public/uploads/large/walking-elephant-j50.png" }, // Elephant
+                    { word: "ציפור", firstLetter: "צ", image: "https://purepng.com/public/uploads/large/purepng.com-yellow-bird-standingbirdflyingflying-birdvogelbirds-swarmstanding-birdstandingyellowyellow-birdamo-301519896207p5ona.png" }, // Bird
+                    { word: "קוף", firstLetter: "ק", image: "https://purepng.com/public/uploads/large/purepng.com-monkeymonkeyfunnyanimalwildchimpanzeeape-981524651620xnkin.png" }, // Monkey
+                    { word: "רכבת", firstLetter: "ר", image: "https://purepng.com/public/uploads/large/purepng.com-traintrainrailway-carriagetrain-enginetrainsrailroad-cars-1701528488767su4f1.png" }, // Train
+                    { word: "תפוח", firstLetter: "ת", image: "https://purepng.com/public/uploads/large/big-red-apple-xad.png" } // Apple (added as an alternative image)
+                    // The image for "keychain" was not used as it doesn't clearly represent a Hebrew word for a letter.
+                ];
+
+                let currentWord = null;
+                let score = 0;
+                let usedWordIndices = []; // To avoid immediate repetition
+
+                const wordImage = document.getElementById('word-image');
+                const hebrewInput = document.getElementById('hebrew-input');
+                const checkButton = document.getElementById('check-button');
+                const nextButton = document.getElementById('next-button');
+                const feedbackDiv = document.getElementById('feedback');
+                const scoreDisplay = document.getElementById('score');
+
+                function generateWord() {
+                    // Reset feedback and input
+                    feedbackDiv.textContent = '';
+                    feedbackDiv.classList.remove('correct-feedback', 'incorrect-feedback');
+                    hebrewInput.value = '';
+                    hebrewInput.focus(); // Focus on the input for immediate typing
+
+                    // Select a new word, avoiding recent repetitions if possible
+                    let randomIndex;
+                    do {
+                        randomIndex = Math.floor(Math.random() * hebrewWords.length);
+                    } while (usedWordIndices.includes(randomIndex) && hebrewWords.length > usedWordIndices.length); // Ensure we don't get stuck if all words are used
+
+                    currentWord = hebrewWords[randomIndex];
+
+                    // Update used words for repetition avoidance
+                    usedWordIndices.push(randomIndex);
+                    if (usedWordIndices.length > hebrewWords.length / 2) { // Keep the "recent" list manageable
+                        usedWordIndices.shift();
+                    }
+
+                    wordImage.src = currentWord.image;
+                    wordImage.alt = currentWord.word; // Alt text for accessibility
+                }
+
+                function checkAnswer() {
+                    const userAnswer = hebrewInput.value.trim();
+                    if (userAnswer.length === 0) {
+                        feedbackDiv.textContent = "אנא הקלד אות!"; // Translated
+                        feedbackDiv.classList.remove('correct-feedback');
+                        feedbackDiv.classList.add('incorrect-feedback');
+                        return;
+                    }
+
+                    if (userAnswer === currentWord.firstLetter) {
+                        feedbackDiv.textContent = '✅ נכון!'; // Translated
+                        feedbackDiv.classList.remove('incorrect-feedback');
+                        feedbackDiv.classList.add('correct-feedback');
+                        score++;
+                    } else {
+                        feedbackDiv.textContent = `❌ לא נכון. האות הראשונה היא '${currentWord.firstLetter}'.`; // Translated
+                        feedbackDiv.classList.remove('correct-feedback');
+                        feedbackDiv.classList.add('incorrect-feedback');
+                        score = Math.max(0, score - 1); // Don't let score go below zero
+                    }
+                    scoreDisplay.textContent = `ניקוד: ${score}`; // Translated
+                }
+
+                // Event Listeners
+                checkButton.addEventListener('click', checkAnswer);
+                nextButton.addEventListener('click', generateWord);
+
+                // Allow pressing Enter to check answer
+                hebrewInput.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter') {
+                        event.preventDefault(); // Prevent default Enter behavior (e.g., new line)
+                        checkAnswer();
+                    }
+                });
+
+                // Initial word generation when the page loads
+                document.addEventListener('DOMContentLoaded', generateWord);
+            </script>
+        </body>
+        </html>
