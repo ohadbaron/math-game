@@ -175,6 +175,7 @@
                 let currentWord = null;
                 let score = 0;
                 let usedWordIndices = []; // To avoid immediate repetition
+                let currentProblemChecked = false; // To prevent multiple scoring per problem
 
                 const wordImage = document.getElementById('word-image');
                 const hebrewInput = document.getElementById('hebrew-input');
@@ -189,7 +190,7 @@
                     feedbackDiv.classList.remove('correct-feedback', 'incorrect-feedback');
                     hebrewInput.value = '';
                     hebrewInput.focus(); // Focus on the input for immediate typing
-
+                    currentProblemChecked = false;
                     // Select a new word, avoiding recent repetitions if possible
                     let randomIndex;
                     do {
@@ -221,12 +222,14 @@
                         feedbackDiv.textContent = '✅ נכון!'; // Translated
                         feedbackDiv.classList.remove('incorrect-feedback');
                         feedbackDiv.classList.add('correct-feedback');
-                        score++;
+                        if (currentProblemChecked == false) {
+                            score++;
+                            currentProblemChecked = true;
+                        }
                     } else {
                         feedbackDiv.textContent = `❌ לא נכון. האות הראשונה היא '${currentWord.firstLetter}'.`; // Translated
                         feedbackDiv.classList.remove('correct-feedback');
                         feedbackDiv.classList.add('incorrect-feedback');
-                        score = Math.max(0, score - 1); // Don't let score go below zero
                     }
                     scoreDisplay.textContent = `ניקוד: ${score}`; // Translated
                 }
