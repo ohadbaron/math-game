@@ -480,12 +480,8 @@
             };
             
             const goToMainMenu = () => {
-                gameUI.style.display = 'flex';
-                startScreen.style.display = 'flex';
-                gameOverScreen.style.display = 'none';
-                messageDisplay.style.display = 'none';
-                checkButton.style.display = 'none';
-                clearButton.style.display = 'none';
+                // Navigate to the specified URL instead of just showing the main menu
+                window.location.href = '../index.html';
             };
 
             // Event listeners
