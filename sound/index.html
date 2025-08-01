@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>משחק אותיות בדיבור</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
+
+        body {
+            background-color: #0d1117;
+            color: #e6edf3;
+            font-family: 'Varela Round', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        canvas {
+            background-color: #282c34;
+            border: 4px solid #5a5a5a;
+            box-shadow: 0 0 20px #343434;
+            display: block;
+        }
+
+        #game-ui {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            text-align: center;
+            background-color: rgba(40, 44, 52, 0.9);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            z-index: 20;
+        }
+
+        #game-ui h1 {
+            font-size: 3em;
+            color: #8c7ae6;
+            text-shadow: 0 0 10px #8c7ae6;
+            animation: pulse 2s infinite;
+        }
+
+        #game-ui p {
+            font-size: 1.2em;
+            color: #d1d1d1;
+        }
+
+        #message-box {
+            position: absolute;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            color: #ffffff;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: 10;
+        }
+
+        .button {
+            padding: 12px 24px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(45deg, #8c7ae6, #b8a9e0);
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(140, 122, 230, 0.4);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(140, 122, 230, 0.6);
+        }
+
+        .button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(140, 122, 230, 0.4);
+        }
+
+        .button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 300%;
+            height: 300%;
+            background: rgba(255, 255, 255, 0.15);
+            transition: all 0.7s ease;
+            transform: translate(-50%, -50%) rotate(45deg);
+            z-index: 0;
+        }
+
+        .button:hover::before {
+            width: 0;
+            height: 0;
+        }
+
+        #game-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        #recordButton, #playButton, #skipButton, #exitButton {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        #recordButton {
+            background: #e53935;
+        }
+        #recordButton:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(229, 57, 53, 0.6);
+        }
+        #recordButton:active {
+            transform: scale(1);
+            box-shadow: 0 2px 10px rgba(229, 57, 53, 0.4);
+        }
+
+        #recordButton.recording {
+            background: #2ecc71;
+            box-shadow: 0 4px 20px rgba(46, 204, 113, 0.6);
+            animation: pulse-green 1.5s infinite;
+        }
+        
+        #recordButton svg {
+            fill: #fff;
+            width: 40px;
+            height: 40px;
+        }
+
+        #playButton {
+            background: #f1c40f;
+            display: none; /* Hidden by default */
+        }
+        #playButton:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(241, 196, 15, 0.6);
+        }
+        #playButton:active {
+            transform: scale(1);
+            box-shadow: 0 2px 10px rgba(241, 196, 15, 0.4);
+        }
+
+        #playButton svg {
+            fill: #fff;
+            width: 40px;
+            height: 40px;
+        }
+        
+        #skipButton {
+            background: #8c7ae6;
+            display: none; /* Hidden by default */
+        }
+        #skipButton:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(140, 122, 230, 0.6);
+        }
+        #skipButton:active {
+            transform: scale(1);
+            box-shadow: 0 2px 10px rgba(140, 122, 230, 0.4);
+        }
+        #skipButton svg {
+            fill: #fff;
+            width: 40px;
+            height: 40px;
+        }
+        
+        #exitButton {
+            background: #e74c3c;
+        }
+        #exitButton:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6);
+        }
+        #exitButton:active {
+            transform: scale(1);
+            box-shadow: 0 2px 10px rgba(231, 76, 60, 0.4);
+        }
+        #exitButton svg {
+            fill: #fff;
+            width: 40px;
+            height: 40px;
+        }
+        
+        #game-buttons {
+            display: none;
+            margin-top: 20px;
+            gap: 20px; /* Space between buttons */
+            flex-direction: row; /* Buttons side-by-side */
+            justify-content: center;
+            align-items: center;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes pulse-green {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        #score-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2em;
+            color: #ffc107;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        /* Responsive styles for smaller screens */
+        @media (max-width: 600px) {
+            #game-ui h1 {
+                font-size: 2em;
+            }
+            #game-ui p {
+                font-size: 1em;
+            }
+            .button {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+            #recordButton, #playButton, #skipButton, #exitButton {
+                width: 60px;
+                height: 60px;
+            }
+            #recordButton svg, #playButton svg, #skipButton svg, #exitButton svg {
+                width: 30px;
+                height: 30px;
+            }
+            #score-display {
+                font-size: 1.5em;
+                top: 10px;
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="game-ui">
+            <h1 id="game-title">משחק אותיות בדיבור</h1>
+            <div id="start-screen">
+                <p>ברוכים הבאים! לחצו על "התחל" כדי להתחיל להתאים אותיות בדיבור!</p>
+                <button id="startButton" class="button">התחל</button>
+            </div>
+            <div id="win-screen" style="display:none;">
+                <h2>כל הכבוד!</h2>
+                <p>ניצחתם במשחק!</p>
+                <button id="restartButton" class="button">שחק שוב</button>
+            </div>
+        </div>
+        <div id="game-buttons" style="display:none;">
+            <div id="recordButton">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.95-3c0 3.53-2.58 6.44-6 6.93V21h-2v-3.07c-3.42-.49-6-3.4-6-6.93h2c0 2.94 2.16 5.35 5 5.79V19h-2v2h4v-2h-2v-1.21c2.84-.44 5-2.85 5-5.79h2z"/>
+                </svg>
+            </div>
+            <div id="playButton">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+            </div>
+            <div id="skipButton">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
+                </svg>
+            </div>
+            <div id="exitButton">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+            </div>
+        </div>
+        <span id="score-display">ניקוד: 0</span>
+        <div id="message-box"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const startButton = document.getElementById('startButton');
+            const restartButton = document.getElementById('restartButton');
+            const startScreen = document.getElementById('start-screen');
+            const winScreen = document.getElementById('win-screen');
+            const gameUI = document.getElementById('game-ui');
+            const gameButtons = document.getElementById('game-buttons');
+            const recordButton = document.getElementById('recordButton');
+            const playButton = document.getElementById('playButton');
+            const skipButton = document.getElementById('skipButton');
+            const exitButton = document.getElementById('exitButton'); // New exit button
+            const scoreDisplay = document.getElementById('score-display');
+            const messageBox = document.getElementById('message-box');
+
+            let game;
+
+            // Helper function to convert base64 audio to ArrayBuffer
+            function base64ToArrayBuffer(base64) {
+                const binaryString = window.atob(base64);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                return bytes.buffer;
+            }
+
+            // Helper function to convert PCM audio to WAV format
+            function pcmToWav(pcm16, sampleRate) {
+                const buffer = new ArrayBuffer(44 + pcm16.length * 2);
+                const view = new DataView(buffer);
+                let offset = 0;
+
+                function writeString(str) {
+                    for (let i = 0; i < str.length; i++) {
+                        view.setUint8(offset++, str.charCodeAt(i));
+                    }
+                }
+
+                function writeUint32(data) {
+                    view.setUint32(offset, data, true);
+                    offset += 4;
+                }
+
+                function writeUint16(data) {
+                    view.setUint16(offset, data, true);
+                    offset += 2;
+                }
+
+                writeString('RIFF'); // ChunkID
+                writeUint32(36 + pcm16.length * 2); // ChunkSize
+                writeString('WAVE'); // Format
+                writeString('fmt '); // Subchunk1ID
+                writeUint32(16); // Subchunk1Size
+                writeUint16(1); // AudioFormat (1 is PCM)
+                writeUint16(1); // NumChannels (1 for mono)
+                writeUint32(sampleRate); // SampleRate
+                writeUint32(sampleRate * 2); // ByteRate
+                writeUint16(2); // BlockAlign
+                writeUint16(16); // BitsPerSample
+                writeString('data'); // Subchunk2ID
+                writeUint32(pcm16.length * 2); // Subchunk2Size
+
+                for (let i = 0; i < pcm16.length; i++) {
+                    view.setInt16(offset, pcm16[i], true);
+                    offset += 2;
+                }
+
+                return new Blob([view], { type: 'audio/wav' });
+            }
+            
+            // Fisher-Yates shuffle algorithm
+            function shuffle(array) {
+                let currentIndex = array.length, randomIndex;
+                while (currentIndex !== 0) {
+                    randomIndex = Math.floor(Math.random() * currentIndex);
+                    currentIndex--;
+                    [array[currentIndex], array[randomIndex]] = [
+                        array[randomIndex], array[currentIndex]];
+                }
+                return array;
+            }
+
+            class SpeechGame {
+                constructor() {
+                    // רשימת האותיות והצלילים שלהן.
+                    this.letters = [
+                        { name: 'א', sound: 'אלף' },
+                        { name: 'ב', sound: 'בית' },
+                        { name: 'ג', sound: 'גימל' },
+                        { name: 'ד', sound: 'דלת' },
+                        { name: 'ה', sound: 'הא' },
+                        { name: 'ו', sound: 'ויו' },
+                    ];
+                    this.shuffledLetters = [];
+                    this.letterIndex = 0;
+                    this.currentLetter = null;
+                    this.correctAnswerCount = 0;
+                    this.incorrectAttempts = 0;
+                    this.totalQuestions = 3;
+                    this.winState = false;
+                    this.feedback = null; // null, 'correct', or 'incorrect'
+                    this.isSpeaking = false;
+                    this.recognitionResultReceived = false;
+
+                    // הגדרות לזיהוי דיבור
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    if (SpeechRecognition) {
+                        this.recognition = new SpeechRecognition();
+                        this.recognition.lang = 'he-IL';
+                        this.recognition.continuous = false;
+                        this.recognition.interimResults = false;
+                        this.recognition.onresult = this.handleRecognitionResult.bind(this);
+                        this.recognition.onerror = (event) => {
+                            this.showMessage('שגיאה בזיהוי דיבור: ' + event.error, 3000);
+                            this.stopRecording();
+                        };
+                        this.recognition.onend = () => {
+                            this.stopRecording();
+                            // Check if a result was received. If not, it's a silent attempt.
+                            if (!this.recognitionResultReceived) {
+                                this.handleSilentAttempt();
+                            }
+                        };
+                    } else {
+                        this.showMessage('זיהוי דיבור לא נתמך בדפדפן זה.', 5000);
+                        recordButton.style.display = 'none';
+                    }
+                }
+
+                init() {
+                    this.correctAnswerCount = 0;
+                    this.winState = false;
+                    this.feedback = null;
+                    this.incorrectAttempts = 0;
+                    this.updateScoreDisplay();
+                    this.hidePlayButton();
+                    this.showSkipButton();
+                    // Shuffle letters at the start of the game
+                    this.shuffledLetters = shuffle([...this.letters]);
+                    this.letterIndex = 0;
+                    this.nextQuestion();
+                    this.gameLoop();
+                }
+
+                gameLoop() {
+                    if (this.winState) return;
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    this.drawCurrentLetter();
+                    this.drawFeedback();
+                    requestAnimationFrame(this.gameLoop.bind(this));
+                }
+                
+                nextQuestion() {
+                    if (this.correctAnswerCount >= this.totalQuestions) {
+                        this.winGame();
+                        return;
+                    }
+                    this.incorrectAttempts = 0;
+                    // Get next letter from shuffled list. If end of list, reshuffle.
+                    if (this.letterIndex >= this.shuffledLetters.length) {
+                        this.shuffledLetters = shuffle([...this.letters]);
+                        this.letterIndex = 0;
+                    }
+                    this.currentLetter = this.shuffledLetters[this.letterIndex];
+                    this.letterIndex++;
+
+                    this.showMessage("אמרו את שם האות:", 2000);
+                    this.hidePlayButton();
+                }
+                
+                skipQuestion() {
+                    this.showMessage("מדלג על האות.", 1000);
+                    setTimeout(() => {
+                        this.nextQuestion();
+                    }, 1000);
+                }
+
+                drawCurrentLetter() {
+                    if (this.currentLetter) {
+                        ctx.font = '200px Varela Round';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillStyle = '#ecf0f1';
+                        ctx.fillText(this.currentLetter.name, canvas.width / 2, canvas.height / 2);
+                    }
+                }
+                
+                drawFeedback() {
+                    if (this.feedback === 'correct') {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.strokeStyle = '#2ecc71';
+                        ctx.lineWidth = 15;
+                        ctx.lineCap = 'round';
+                        ctx.shadowColor = '#2ecc71';
+                        ctx.shadowBlur = 20;
+                        ctx.moveTo(canvas.width / 2 - 50, canvas.height / 2);
+                        ctx.lineTo(canvas.width / 2, canvas.height / 2 + 50);
+                        ctx.lineTo(canvas.width / 2 + 100, canvas.height / 2 - 50);
+                        ctx.stroke();
+                        ctx.restore();
+                    } else if (this.feedback === 'incorrect') {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.strokeStyle = '#e74c3c';
+                        ctx.lineWidth = 15;
+                        ctx.lineCap = 'round';
+                        ctx.shadowColor = '#e74c3c';
+                        ctx.shadowBlur = 20;
+                        ctx.moveTo(canvas.width / 2 - 75, canvas.height / 2 - 75);
+                        ctx.lineTo(canvas.width / 2 + 75, canvas.height / 2 + 75);
+                        ctx.moveTo(canvas.width / 2 + 75, canvas.height / 2 - 75);
+                        ctx.lineTo(canvas.width / 2 - 75, canvas.height / 2 + 75);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+
+                async handleRecognitionResult(event) {
+                    this.recognitionResultReceived = true;
+                    const transcript = event.results[0][0].transcript.toLowerCase().trim();
+                    const correctSound = this.currentLetter.sound.toLowerCase().trim();
+                    
+                    if (this.isSpeaking) return;
+
+                    if (transcript.includes(correctSound)) {
+                        this.correctAnswerCount++;
+                        this.feedback = 'correct';
+                        this.updateScoreDisplay();
+                        this.showMessage("נכון! כל הכבוד!", 1500);
+                        setTimeout(() => {
+                           this.feedback = null;
+                           this.nextQuestion();
+                        }, 1500);
+                    } else {
+                        this.incorrectAttempts++;
+                        this.feedback = 'incorrect';
+                        
+                        if (this.incorrectAttempts >= 2) {
+                           this.showPlayButton();
+                           this.showMessage("אוי לא, נסה שוב.", 3000);
+                           setTimeout(() => {
+                                this.feedback = null;
+                            }, 1500);
+                        } else {
+                            this.showMessage("טעות, נסה שוב.", 3000);
+                             setTimeout(() => {
+                                this.feedback = null;
+                             }, 1500);
+                        }
+                    }
+                }
+                
+                handleSilentAttempt() {
+                    this.incorrectAttempts++;
+                    this.feedback = 'incorrect';
+                    this.showMessage("לא נקלט קול, נסה שוב.", 3000);
+                    setTimeout(() => {
+                        this.feedback = null;
+                    }, 1500);
+                    if (this.incorrectAttempts >= 2) {
+                        this.showPlayButton();
+                    }
+                }
+                
+                async playCorrectAnswer() {
+                    this.isSpeaking = true;
+                    this.showMessage("משמיע את התשובה הנכונה...", 3000);
+                    
+                    const prompt = `אמרו את שם האות: ${this.currentLetter.sound}`;
+                    const payload = {
+                        contents: [{
+                            parts: [{ text: prompt }]
+                        }],
+                        generationConfig: {
+                            responseModalities: ["AUDIO"],
+                            speechConfig: {
+                                voiceConfig: {
+                                    prebuiltVoiceConfig: { voiceName: "Rasalgethi" }
+                                }
+                            }
+                        },
+                        model: "gemini-2.5-flash-preview-tts"
+                    };
+
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
+                    try {
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        const result = await response.json();
+                        const part = result?.candidates?.[0]?.content?.parts?.[0];
+                        const audioData = part?.inlineData?.data;
+                        const mimeType = part?.inlineData?.mimeType;
+
+                        if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                            const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10);
+                            const pcmData = base64ToArrayBuffer(audioData);
+                            const pcm16 = new Int16Array(pcmData);
+                            const wavBlob = pcmToWav(pcm16, sampleRate);
+                            const audioUrl = URL.createObjectURL(wavBlob);
+                            
+                            const audio = new Audio(audioUrl);
+                            await new Promise(resolve => {
+                                audio.onended = resolve;
+                                audio.play();
+                            });
+
+                        } else {
+                            console.error('API response for audio was not as expected.');
+                            this.showMessage('שגיאה בהשמעת התשובה.', 3000);
+                        }
+                    } catch (error) {
+                        console.error("Error playing audio:", error);
+                        this.showMessage('שגיאה בהשמעת התשובה.', 3000);
+                    } finally {
+                        this.isSpeaking = false;
+                    }
+                }
+
+                startRecording() {
+                    if (this.recognition && !this.isSpeaking) {
+                         try {
+                            this.recognitionResultReceived = false;
+                            this.recognition.start();
+                            recordButton.classList.add('recording');
+                         } catch (error) {
+                            console.error("Speech recognition error:", error);
+                         }
+                    }
+                }
+                
+                stopRecording() {
+                    if (this.recognition) {
+                         this.recognition.stop();
+                         recordButton.classList.remove('recording');
+                    }
+                }
+                
+                showPlayButton() {
+                    playButton.style.display = 'flex';
+                }
+                
+                hidePlayButton() {
+                    playButton.style.display = 'none';
+                }
+                
+                showSkipButton() {
+                    skipButton.style.display = 'flex';
+                }
+                
+                hideSkipButton() {
+                    skipButton.style.display = 'none';
+                }
+
+                showMessage(text, duration) {
+                    messageBox.textContent = text;
+                    messageBox.style.opacity = 1;
+                    setTimeout(() => {
+                        messageBox.style.opacity = 0;
+                    }, duration);
+                }
+
+                updateScoreDisplay() {
+                    scoreDisplay.textContent = `ניקוד: ${this.correctAnswerCount}`;
+                }
+
+                winGame() {
+                    this.winState = true;
+                    gameUI.style.display = 'flex';
+                    winScreen.style.display = 'flex';
+                    startScreen.style.display = 'none';
+                    gameButtons.style.display = 'none';
+                }
+
+                resizeCanvas() {
+                    canvas.width = window.innerWidth * 0.9;
+                    canvas.height = window.innerHeight * 0.9;
+                }
+            }
+
+            const startGame = () => {
+                gameUI.style.display = 'none';
+                startScreen.style.display = 'none';
+                winScreen.style.display = 'none';
+                gameButtons.style.display = 'flex';
+                game = new SpeechGame();
+                game.resizeCanvas();
+                game.init();
+            };
+            
+            const goToMainMenu = () => {
+                window.location.href = '../index.html';
+            };
+            
+            startButton.addEventListener('click', startGame);
+            restartButton.addEventListener('click', startGame);
+            
+            // Event listener for the new exit button
+            exitButton.addEventListener('click', goToMainMenu);
+
+            if (recordButton) {
+                recordButton.addEventListener('mousedown', () => {
+                    if (game) {
+                        game.startRecording();
+                    }
+                });
+                recordButton.addEventListener('mouseup', () => {
+                    if (game) {
+                        game.stopRecording();
+                    }
+                });
+                recordButton.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (game) {
+                        game.startRecording();
+                    }
+                });
+                recordButton.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    if (game) {
+                        game.stopRecording();
+                    }
+                });
+            }
+            
+            if (playButton) {
+                playButton.addEventListener('click', () => {
+                    if (game && game.currentLetter) {
+                        game.playCorrectAnswer();
+                    }
+                });
+            }
+            
+            if (skipButton) {
+                skipButton.addEventListener('click', () => {
+                    if (game && !game.isSpeaking) {
+                        game.skipQuestion();
+                    }
+                });
+            }
+
+            window.addEventListener('resize', () => {
+                if (game) {
+                   game.resizeCanvas();
+                }
+            });
+            
+            // Initial setup
+            game = new SpeechGame();
+            game.resizeCanvas();
+        });
+    </script>
+</body>
+</html>
