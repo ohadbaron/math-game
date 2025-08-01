@@ -112,7 +112,7 @@
             position: absolute;
             top: 20px;
             left: 20px;
-            display: none; /* Hidden by default */
+            display: flex; /* Now always visible */
             z-index: 10;
         }
         
@@ -228,10 +228,11 @@
                     this.ship = new Ship();
                     this.asteroids = [];
                     this.lasers = [];
+                    this.explosions = []; 
                     this.score = 0;
                     this.isGameOver = false;
                     this.lastSpawnTime = 0;
-                    this.spawnInterval = 1000; // Time in milliseconds
+                    this.spawnInterval = 900; // Adjusted spawn rate for better balance
                     this.touchMoveX = 0;
                 }
 
@@ -239,6 +240,7 @@
                     this.ship = new Ship();
                     this.asteroids = [];
                     this.lasers = [];
+                    this.explosions = []; 
                     this.score = 0;
                     this.isGameOver = false;
                     this.lastSpawnTime = 0;
@@ -247,40 +249,53 @@
                 }
 
                 gameLoop(timestamp) {
-                    if (this.isGameOver) return;
-                    
+                    // Update and draw everything regardless of game state
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     
                     this.update(timestamp);
                     this.draw();
                     
+                    // The game over screen is shown only after the explosion animation finishes
+                    if (this.isGameOver && this.explosions.length === 0) {
+                        this.showGameOverScreen();
+                        return; // Stop the loop only after the animation
+                    }
+                    
                     requestAnimationFrame(this.gameLoop.bind(this));
                 }
 
                 update(timestamp) {
-                    this.ship.update();
+                    // Only update game logic if the game is not over
+                    if (!this.isGameOver) {
+                        this.ship.update();
                     
-                    if (timestamp - this.lastSpawnTime > this.spawnInterval) {
-                        this.spawnAsteroid();
-                        this.lastSpawnTime = timestamp;
+                        if (timestamp - this.lastSpawnTime > this.spawnInterval) {
+                            this.spawnAsteroid();
+                            this.lastSpawnTime = timestamp;
+                        }
+                    
+                        this.updateAsteroids();
+                        this.updateLasers();
+                        this.checkCollisions();
                     }
                     
-                    this.updateAsteroids();
-                    this.updateLasers();
-                    this.checkCollisions();
+                    // Always update explosions, even after game over
+                    this.updateExplosions(); 
                 }
                 
                 draw() {
+                    // Draw everything
                     this.ship.draw();
                     this.asteroids.forEach(a => a.draw());
                     this.lasers.forEach(l => l.draw());
+                    this.explosions.forEach(e => e.draw()); 
                 }
 
                 spawnAsteroid() {
                     const x = Math.random() * canvas.width;
                     const y = -50;
                     const size = Math.random() * 30 + 20;
-                    const speedY = Math.random() * 2 + 1;
+                    const speedY = Math.random() * 2 + 1; // Adjusted asteroid speed
                     this.asteroids.push(new Asteroid(x, y, size, speedY));
                 }
 
@@ -292,6 +307,11 @@
                 updateLasers() {
                     this.lasers = this.lasers.filter(l => l.y > -10);
                     this.lasers.forEach(l => l.update());
+                }
+
+                updateExplosions() {
+                    this.explosions = this.explosions.filter(e => e.isAlive());
+                    this.explosions.forEach(e => e.update());
                 }
 
                 checkCollisions() {
@@ -309,7 +329,11 @@
                     this.asteroids.forEach(asteroid => {
                         if (this.isColliding(this.ship, asteroid)) {
                             this.isGameOver = true;
-                            this.showGameOverScreen();
+                            // Trigger explosion on game over
+                            this.explosions.push(new Explosion(this.ship.x, this.ship.y));
+                            // Hide the ship immediately
+                            this.ship.x = -100;
+                            this.ship.y = -100;
                         }
                     });
                 }
@@ -326,7 +350,7 @@
                     gameUI.style.display = 'flex';
                     gameOverScreen.style.display = 'flex';
                     startScreen.style.display = 'none';
-                    gameControls.style.display = 'none';
+                    // gameControls.style.display = 'none'; // Removed this line
                 }
                 
                 updateScoreDisplay() {
@@ -338,8 +362,8 @@
                 constructor() {
                     this.x = canvas.width / 2;
                     this.y = canvas.height - 50;
-                    this.radius = 20;
-                    this.speed = 8;
+                    this.radius = 30; // Increased ship size
+                    this.speed = 10; // Increased ship speed
                 }
 
                 update() {
@@ -357,7 +381,7 @@
                     ctx.closePath();
                     ctx.fillStyle = '#1e90ff';
                     ctx.shadowColor = '#1e90ff';
-                    ctx.shadowBlur = 10;
+                    ctx.shadowBlur = 15;
                     ctx.fill();
                     ctx.shadowBlur = 0; // Reset shadow for other elements
                 }
@@ -409,8 +433,10 @@
                 constructor(x, y) {
                     this.x = x;
                     this.y = y;
-                    this.radius = 2;
-                    this.speed = 10;
+                    this.width = 4;
+                    this.height = 20; // Laser is now a vertical rectangle
+                    this.radius = Math.max(this.width, this.height) / 2; // Collision radius
+                    this.speed = 15; // Increased laser speed
                 }
                 
                 update() {
@@ -418,13 +444,66 @@
                 }
                 
                 draw() {
+                    ctx.fillStyle = '#ff0000';
+                    ctx.shadowColor = '#ff3333';
+                    ctx.shadowBlur = 15;
+                    ctx.fillRect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            class Explosion {
+                constructor(x, y) {
+                    this.particles = [];
+                    this.lifetime = 100;
+                    this.frame = 0;
+                    // Create multiple particles for the explosion
+                    for (let i = 0; i < 40; i++) {
+                        this.particles.push(new Particle(x, y));
+                    }
+                }
+
+                update() {
+                    this.frame++;
+                    this.particles.forEach(p => p.update());
+                }
+
+                draw() {
+                    this.particles.forEach(p => p.draw());
+                }
+
+                isAlive() {
+                    return this.frame < this.lifetime;
+                }
+            }
+
+            class Particle {
+                constructor(x, y) {
+                    this.x = x;
+                    this.y = y;
+                    this.radius = Math.random() * 4 + 2; // Increased particle size
+                    this.velocity = {
+                        x: (Math.random() - 0.5) * 8, // Increased particle speed
+                        y: (Math.random() - 0.5) * 8
+                    };
+                    this.alpha = 1;
+                    this.hue = Math.random() * 60; // Color range for explosion (yellow to red)
+                }
+
+                update() {
+                    this.x += this.velocity.x;
+                    this.y += this.velocity.y;
+                    this.alpha -= 0.02; // Faster fade out
+                }
+
+                draw() {
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, this.alpha);
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                    ctx.fillStyle = '#ff0000';
-                    ctx.shadowColor = '#ff0000';
-                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = `hsl(${this.hue}, 100%, 50%)`;
                     ctx.fill();
-                    ctx.shadowBlur = 0;
+                    ctx.restore();
                 }
             }
 
@@ -432,7 +511,7 @@
                 gameUI.style.display = 'none';
                 startScreen.style.display = 'none';
                 gameOverScreen.style.display = 'none';
-                gameControls.style.display = 'flex';
+                // gameControls.style.display = 'flex'; // Removed this line
                 
                 game = new Game();
                 game.init();
@@ -448,6 +527,7 @@
             };
             
             const goToMainMenu = () => {
+                // This function is now correctly linked to the exit button
                 window.location.href = '../index.html';
             };
 
