@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>משחק למידת אותיות בעברית</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@400;700&display=swap');
+        
+        body {
+            background-color: #0d1117;
+            color: #e6edf3;
+            font-family: 'Assistant', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            flex-direction: column;
+            touch-action: none; /* Prevents default touch actions */
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            background-color: #0d1117;
+        }
+        
+        canvas {
+            display: block;
+            background-color: transparent; /* Use transparent background to see the guide canvas */
+            position: absolute;
+            top: 0;
+            left: 0;
+            touch-action: none;
+            cursor: pointer;
+        }
+
+        #guideCanvas {
+            z-index: 1; /* Guide canvas should be behind drawing canvas */
+        }
+        
+        #drawingCanvas {
+            z-index: 2; /* Drawing canvas should be on top */
+        }
+        
+        #game-ui {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            text-align: center;
+            background-color: rgba(40, 44, 52, 0.9);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            z-index: 20;
+        }
+        
+        #game-ui h1 {
+            font-size: 3em;
+            color: #50fa7b;
+            text-shadow: 0 0 10px #50fa7b;
+            animation: pulse 2s infinite;
+        }
+
+        #game-ui p {
+            font-size: 1.2em;
+            color: #d1d1d1;
+        }
+        
+        .button {
+            padding: 12px 24px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(45deg, #50fa7b, #5af79e);
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(80, 250, 123, 0.4);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(80, 250, 123, 0.6);
+        }
+        
+        .button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(80, 250, 123, 0.4);
+        }
+
+        .button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 300%;
+            height: 300%;
+            background: rgba(255, 255, 255, 0.15);
+            transition: all 0.7s ease;
+            transform: translate(-50%, -50%) rotate(45deg);
+            z-index: 0;
+        }
+        
+        .button:hover::before {
+            width: 0;
+            height: 0;
+        }
+        
+        #game-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        #checkButton {
+            background: linear-gradient(45deg, #1e90ff, #5ad8ff);
+            box-shadow: 0 4px 15px rgba(30, 144, 255, 0.4);
+        }
+        #checkButton:hover {
+            box-shadow: 0 6px 20px rgba(30, 144, 255, 0.6);
+        }
+        #checkButton:active {
+            box-shadow: 0 2px 10px rgba(30, 144, 255, 0.4);
+        }
+
+        #clearButton {
+            background: linear-gradient(45deg, #e74c3c, #f1685f);
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+        }
+        #clearButton:hover {
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6);
+        }
+        #clearButton:active {
+            box-shadow: 0 2px 10px rgba(231, 76, 60, 0.4);
+        }
+
+        #exitButton {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #e74c3c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        
+        #exitButton:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6);
+        }
+        
+        #exitButton:active {
+            transform: scale(1);
+            box-shadow: 0 2px 10px rgba(231, 76, 60, 0.4);
+        }
+        
+        #exitButton svg {
+            fill: #fff;
+            width: 30px;
+            height: 30px;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        #message-display {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2em;
+            color: #ffc107;
+            text-shadow: 2px 2px 4px #000;
+            text-align: center;
+            width: 80%;
+            z-index: 5;
+            direction: rtl;
+        }
+
+        /* Responsive styles for smaller screens */
+        @media (max-width: 600px) {
+            #game-ui h1 {
+                font-size: 2em;
+            }
+            #game-ui p {
+                font-size: 1em;
+            }
+            .button {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+            #message-display {
+                font-size: 1.5em;
+                top: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="drawingCanvas"></canvas>
+        <canvas id="guideCanvas"></canvas>
+        <div id="game-ui">
+            <div id="start-screen">
+                <h1>משחק למידת אותיות</h1>
+                <p>התאמנו על כתיבת אותיות בעברית!</p>
+                <button id="startButton" class="button">התחל משחק</button>
+            </div>
+            <div id="game-over-screen" style="display:none;">
+                <h1>כל הכבוד!</h1>
+                <p>סיימתם את כל האותיות!</p>
+                <button id="restartButton" class="button">שחק שוב</button>
+            </div>
+        </div>
+        <div id="game-controls">
+            <button id="checkButton" class="button" style="display:none;">בדיקה</button>
+            <button id="clearButton" class="button" style="display:none;">מחיקה</button>
+        </div>
+        <div id="exitButton" title="יציאה למסך ראשי">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+        </div>
+        <div id="message-display"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const drawingCanvas = document.getElementById('drawingCanvas');
+            const guideCanvas = document.getElementById('guideCanvas');
+            const drawingCtx = drawingCanvas.getContext('2d');
+            const guideCtx = guideCanvas.getContext('2d');
+            
+            const startButton = document.getElementById('startButton');
+            const restartButton = document.getElementById('restartButton');
+            const exitButton = document.getElementById('exitButton');
+            const checkButton = document.getElementById('checkButton');
+            const clearButton = document.getElementById('clearButton');
+            const startScreen = document.getElementById('start-screen');
+            const gameOverScreen = document.getElementById('game-over-screen');
+            const gameUI = document.getElementById('game-ui');
+            const messageDisplay = document.getElementById('message-display');
+            
+            let game;
+
+            // An array with all 22 Hebrew letters
+            const letterData = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת'];
+            const successMessages = ["כל הכבוד!", "מצוין!", "הצלחת!", "מעולה!"];
+            const failMessages = ["נסיון נוסף...", "נסו שוב", "כמעט!"];
+
+            class Game {
+                constructor() {
+                    this.currentLetterIndex = 0;
+                    this.isDrawing = false;
+                    this.hasDrawn = false; // Flag to check if any drawing has occurred
+                }
+                
+                init() {
+                    this.currentLetterIndex = 0;
+                    this.loadLetter(this.currentLetterIndex);
+                    this.setupEventListeners();
+                }
+
+                loadLetter(index) {
+                    // Check if all letters have been completed
+                    if (index >= letterData.length) {
+                        this.showGameOverScreen();
+                        return;
+                    }
+                    
+                    this.currentLetter = letterData[index];
+                    
+                    // Clear both canvases
+                    drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    guideCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
+                    
+                    messageDisplay.textContent = `ציירו את האות: ${this.currentLetter}`;
+                    this.hasDrawn = false;
+                    this.drawGuideLetter();
+                }
+
+                drawGuideLetter() {
+                    guideCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
+                    
+                    // Use the user's preferred font for the guide
+                    const fontSize = Math.min(guideCanvas.width, guideCanvas.height) * 0.5; // 50% of the smaller dimension
+                    guideCtx.font = `bold ${fontSize}px Assistant`;
+                    guideCtx.textAlign = 'center';
+                    guideCtx.textBaseline = 'middle';
+                    
+                    // Set the color for the guide letter
+                    guideCtx.fillStyle = 'rgba(80, 250, 123, 0.2)';
+                    guideCtx.shadowColor = 'rgba(80, 250, 123, 0.5)';
+                    guideCtx.shadowBlur = 15;
+                    
+                    // Draw the letter in the center of the canvas
+                    guideCtx.fillText(this.currentLetter, guideCanvas.width / 2, guideCanvas.height / 2);
+                    guideCtx.shadowBlur = 0;
+                }
+                
+                setupEventListeners() {
+                    const rect = drawingCanvas.getBoundingClientRect();
+                    
+                    const getMousePos = (e) => {
+                        let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                        let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                        if (clientX === undefined || clientY === undefined) return null;
+                        
+                        return {
+                            x: clientX - rect.left,
+                            y: clientY - rect.top
+                        };
+                    };
+                    
+                    const startDrawing = (e) => {
+                        e.preventDefault();
+                        const pos = getMousePos(e);
+                        if (!pos) return;
+                        
+                        this.isDrawing = true;
+                        this.hasDrawn = true;
+                        drawingCtx.beginPath();
+                        drawingCtx.moveTo(pos.x, pos.y);
+                        drawingCtx.lineWidth = 20;
+                        drawingCtx.lineCap = 'round';
+                        drawingCtx.lineJoin = 'round';
+                        drawingCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                        drawingCtx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+                        drawingCtx.shadowBlur = 10;
+                    };
+
+                    const draw = (e) => {
+                        if (!this.isDrawing) return;
+                        e.preventDefault();
+                        const pos = getMousePos(e);
+                        if (!pos) return;
+
+                        drawingCtx.lineTo(pos.x, pos.y);
+                        drawingCtx.stroke();
+                    };
+
+                    const stopDrawing = () => {
+                        if (this.isDrawing) {
+                            this.isDrawing = false;
+                            drawingCtx.shadowBlur = 0;
+                        }
+                    };
+                    
+                    drawingCanvas.addEventListener('mousedown', startDrawing);
+                    drawingCanvas.addEventListener('mousemove', draw);
+                    drawingCanvas.addEventListener('mouseup', stopDrawing);
+                    drawingCanvas.addEventListener('mouseout', stopDrawing);
+                    drawingCanvas.addEventListener('touchstart', startDrawing);
+                    drawingCanvas.addEventListener('touchmove', draw);
+                    drawingCanvas.addEventListener('touchend', stopDrawing);
+                }
+
+                checkDrawing() {
+                    if (!this.hasDrawn) {
+                        messageDisplay.textContent = "אנא ציירו משהו לפני הבדיקה.";
+                        return;
+                    }
+                    
+                    // Create a temporary, offscreen canvas to render the guide letter's silhouette
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = guideCanvas.width;
+                    tempCanvas.height = guideCanvas.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    // Draw the guide letter in solid color on the temp canvas
+                    const fontSize = Math.min(guideCanvas.width, guideCanvas.height) * 0.5;
+                    tempCtx.font = `bold ${fontSize}px Assistant`;
+                    tempCtx.textAlign = 'center';
+                    tempCtx.textBaseline = 'middle';
+                    tempCtx.fillStyle = '#000000'; // Black color for solid shape
+                    tempCtx.fillText(this.currentLetter, tempCanvas.width / 2, tempCanvas.height / 2);
+
+                    // Get image data for both canvases
+                    const guideData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height).data;
+                    const drawingData = drawingCtx.getImageData(0, 0, drawingCanvas.width, drawingCanvas.height).data;
+                    
+                    let totalGuidePixels = 0;
+                    let matchedPixels = 0;
+                    const tolerance = 100; // Check for a non-zero alpha value
+                    
+                    for (let i = 3; i < guideData.length; i += 4) {
+                        if (guideData[i] > tolerance) {
+                            totalGuidePixels++;
+                            if (drawingData[i] > tolerance) {
+                                matchedPixels++;
+                            }
+                        }
+                    }
+                    
+                    const overlapPercentage = (matchedPixels / totalGuidePixels) * 100;
+                    const requiredOverlap = 65; // Set a threshold for a successful trace
+                    
+                    if (overlapPercentage >= requiredOverlap) {
+                        const randomMessage = successMessages[Math.floor(Math.random() * successMessages.length)];
+                        messageDisplay.textContent = `${randomMessage}`;
+                        setTimeout(() => {
+                            this.currentLetterIndex++;
+                            this.loadLetter(this.currentLetterIndex);
+                        }, 1500); // Wait 1.5 seconds before loading the next letter
+                    } else {
+                        const randomMessage = failMessages[Math.floor(Math.random() * failMessages.length)];
+                        messageDisplay.textContent = `${randomMessage} (${Math.round(overlapPercentage)}%)`;
+                        this.clearDrawing();
+                    }
+                }
+                
+                clearDrawing() {
+                    drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    this.hasDrawn = false;
+                }
+
+                showGameOverScreen() {
+                    gameUI.style.display = 'flex';
+                    gameOverScreen.style.display = 'flex';
+                    startScreen.style.display = 'none';
+                    messageDisplay.style.display = 'none';
+                    checkButton.style.display = 'none';
+                    clearButton.style.display = 'none';
+                }
+            }
+
+            const startGame = () => {
+                gameUI.style.display = 'none';
+                startScreen.style.display = 'none';
+                gameOverScreen.style.display = 'none';
+                messageDisplay.style.display = 'block';
+                checkButton.style.display = 'inline-block';
+                clearButton.style.display = 'inline-block';
+                
+                game = new Game();
+                game.init();
+            };
+            
+            const resizeCanvas = () => {
+                drawingCanvas.width = window.innerWidth;
+                drawingCanvas.height = window.innerHeight;
+                guideCanvas.width = window.innerWidth;
+                guideCanvas.height = window.innerHeight;
+                if (game) {
+                    game.drawGuideLetter();
+                }
+            };
+            
+            const goToMainMenu = () => {
+                gameUI.style.display = 'flex';
+                startScreen.style.display = 'flex';
+                gameOverScreen.style.display = 'none';
+                messageDisplay.style.display = 'none';
+                checkButton.style.display = 'none';
+                clearButton.style.display = 'none';
+            };
+
+            // Event listeners
+            startButton.addEventListener('click', startGame);
+            restartButton.addEventListener('click', startGame);
+            exitButton.addEventListener('click', goToMainMenu);
+            checkButton.addEventListener('click', () => {
+                if (game) game.checkDrawing();
+            });
+            clearButton.addEventListener('click', () => {
+                if (game) game.clearDrawing();
+            });
+
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+        });
+    </script>
+</body>
+</html>
