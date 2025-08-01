@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star Catcher</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+        body {
+            background-color: #0d1117;
+            color: #e6edf3;
+            font-family: 'Orbitron', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        canvas {
+            background-color: #000000;
+            border: 4px solid #1f6feb;
+            box-shadow: 0 0 20px #1f6feb;
+            cursor: none;
+        }
+
+        #game-ui {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            text-align: center;
+        }
+
+        #game-ui h1 {
+            font-size: 3em;
+            color: #ffffff;
+            text-shadow: 0 0 10px #ffffff;
+            animation: pulse 2s infinite;
+        }
+
+        #score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 2em;
+            text-shadow: 0 0 5px #ffea00;
+            z-index: 10;
+            color: #ffea00;
+        }
+
+        #game-over-message {
+            display: none;
+        }
+
+        .button {
+            padding: 12px 24px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(45deg, #1f6feb, #4c8fe0);
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(31, 111, 235, 0.4);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(31, 111, 235, 0.6);
+        }
+
+        .button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(31, 111, 235, 0.4);
+        }
+
+        .button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 300%;
+            height: 300%;
+            background: rgba(255, 255, 255, 0.15);
+            transition: all 0.7s ease;
+            transform: translate(-50%, -50%) rotate(45deg);
+            z-index: 0;
+        }
+
+        .button:hover::before {
+            width: 0;
+            height: 0;
+        }
+
+        .svg-icon {
+            position: relative;
+            z-index: 1;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Responsive styles for smaller screens */
+        @media (max-width: 600px) {
+            #game-ui h1 {
+                font-size: 2em;
+            }
+            #score-display {
+                font-size: 1.5em;
+            }
+            .button {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="game-ui">
+            <h1 id="game-title">Star Catcher</h1>
+            <div id="start-screen">
+                <button id="startButton" class="button">
+                    <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Start Game
+                </button>
+            </div>
+            <div id="game-over-message">
+                <h2>Game Over!</h2>
+                <p id="final-score">Your Score: 0</p>
+                <button id="restartButton" class="button">
+                    <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6"/><path d="M21.5 2A10 10 0 1 0 16 22l5.5-2.5"/></svg>
+                    Play Again
+                </button>
+            </div>
+        </div>
+        <div id="score-display">Score: 0</div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const startButton = document.getElementById('startButton');
+            const restartButton = document.getElementById('restartButton');
+            const startScreen = document.getElementById('start-screen');
+            const gameOverMessage = document.getElementById('game-over-message');
+            const finalScoreDisplay = document.getElementById('final-score');
+            const scoreDisplay = document.getElementById('score-display');
+            const gameUI = document.getElementById('game-ui');
+
+            let game;
+
+            // Define the game class
+            class StarCatcherGame {
+                constructor() {
+                    this.score = 0;
+                    this.isGameOver = false;
+                    this.lastStarSpawn = 0;
+                    this.lastAsteroidSpawn = 0;
+                    this.stars = [];
+                    this.asteroids = [];
+                    this.explosionParticles = []; // Array to hold explosion particles
+                    this.gameOverTimer = 0; // Timer to delay displaying the game over screen
+                    this.player = {
+                        x: canvas.width / 2,
+                        y: canvas.height - 60,
+                        width: 40,
+                        height: 40,
+                        speed: 5, // Reduced player speed
+                        dx: 0,
+                        dy: 0
+                    };
+                }
+
+                // Initialize a new game state
+                init() {
+                    this.score = 0;
+                    this.isGameOver = false;
+                    this.stars = [];
+                    this.asteroids = [];
+                    this.explosionParticles = [];
+                    this.gameOverTimer = 0;
+                    this.player.x = canvas.width / 2 - this.player.width / 2;
+                    this.player.y = canvas.height - 60;
+                    this.player.dx = 0;
+                    this.player.dy = 0;
+                    scoreDisplay.textContent = `Score: 0`;
+                    this.gameLoop();
+                }
+
+                // Main game loop
+                gameLoop() {
+                    if (this.isGameOver && this.explosionParticles.length === 0) {
+                        // All explosion particles are gone, display game over message
+                        gameOverMessage.style.display = 'flex';
+                        gameUI.style.display = 'flex';
+                        return;
+                    }
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    // Only update and draw game objects if the game is not over
+                    if (!this.isGameOver) {
+                        this.update();
+                        this.draw();
+                    }
+                    
+                    // Update and draw explosions regardless of game state
+                    this.updateExplosions();
+                    this.drawExplosions();
+
+                    requestAnimationFrame(this.gameLoop.bind(this));
+                }
+
+                // Update game state
+                update() {
+                    this.updatePlayer();
+                    this.updateStars();
+                    this.updateAsteroids();
+                    this.spawnObjects();
+                    this.checkCollisions();
+                }
+
+                // Draw all game objects
+                draw() {
+                    this.drawPlayer();
+                    this.drawStars();
+                    this.drawAsteroids();
+                }
+
+                // Draw the player spaceship
+                drawPlayer() {
+                    // Spaceship SVG - a simple triangle
+                    ctx.beginPath();
+                    ctx.moveTo(this.player.x + this.player.width / 2, this.player.y);
+                    ctx.lineTo(this.player.x, this.player.y + this.player.height);
+                    ctx.lineTo(this.player.x + this.player.width, this.player.y + this.player.height);
+                    ctx.closePath();
+                    ctx.fillStyle = '#1f6feb';
+                    ctx.shadowColor = '#1f6feb';
+                    ctx.shadowBlur = 15;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+
+                // Draw the stars
+                drawStars() {
+                    this.stars.forEach(star => {
+                        ctx.beginPath();
+                        ctx.moveTo(star.x + star.size / 2, star.y);
+                        for (let i = 0; i < 5; i++) {
+                            const angle = Math.PI / 2 + (i * 2 * Math.PI) / 5;
+                            const innerAngle = angle + Math.PI / 5;
+                            ctx.lineTo(star.x + Math.cos(innerAngle) * (star.size / 2) / 2, star.y + Math.sin(innerAngle) * (star.size / 2) / 2);
+                            ctx.lineTo(star.x + Math.cos(angle) * (star.size / 2), star.y + Math.sin(angle) * (star.size / 2));
+                        }
+                        ctx.closePath();
+                        ctx.fillStyle = star.color;
+                        ctx.shadowColor = star.color;
+                        ctx.shadowBlur = 10;
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    });
+                }
+
+                // Draw the asteroids
+                drawAsteroids() {
+                    this.asteroids.forEach(asteroid => {
+                        ctx.beginPath();
+                        ctx.arc(asteroid.x, asteroid.y, asteroid.radius, 0, Math.PI * 2);
+                        ctx.fillStyle = '#a68a6a';
+                        ctx.shadowColor = '#a68a6a';
+                        ctx.shadowBlur = 10;
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    });
+                }
+
+                // Draw explosion particles
+                drawExplosions() {
+                    this.explosionParticles.forEach(p => {
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${p.a})`;
+                        ctx.fill();
+                    });
+                }
+
+                // Update player position based on movement
+                updatePlayer() {
+                    this.player.x += this.player.dx;
+                    this.player.y += this.player.dy;
+
+                    // Keep player within canvas bounds
+                    if (this.player.x < 0) this.player.x = 0;
+                    if (this.player.x + this.player.width > canvas.width) this.player.x = canvas.width - this.player.width;
+                    if (this.player.y < 0) this.player.y = 0;
+                    if (this.player.y + this.player.height > canvas.height) this.player.y = canvas.height - this.player.height;
+                }
+
+                // Update star positions and remove off-screen stars
+                updateStars() {
+                    this.stars = this.stars.filter(star => star.y <= canvas.height);
+                    this.stars.forEach(star => {
+                        star.y += star.speed;
+                    });
+                }
+
+                // Update asteroid positions and remove off-screen asteroids
+                updateAsteroids() {
+                    this.asteroids = this.asteroids.filter(asteroid => asteroid.y <= canvas.height);
+                    this.asteroids.forEach(asteroid => {
+                        asteroid.y += asteroid.speed;
+                    });
+                }
+
+                // Update explosion particle positions and opacity
+                updateExplosions() {
+                    this.explosionParticles.forEach(p => {
+                        p.x += p.dx;
+                        p.y += p.dy;
+                        p.a -= 0.02; // Fade out
+                        p.radius += 0.2; // Expand
+                    });
+                    this.explosionParticles = this.explosionParticles.filter(p => p.a > 0);
+                }
+
+
+                // Spawn new stars and asteroids
+                spawnObjects() {
+                    const now = Date.now();
+                    const starInterval = 1200; // milliseconds, increased for a slower pace
+                    const asteroidInterval = 2000; // milliseconds, increased for a slower pace
+
+                    if (now - this.lastStarSpawn > starInterval) {
+                        this.stars.push({
+                            x: Math.random() * canvas.width,
+                            y: -20,
+                            size: 20 + Math.random() * 10,
+                            speed: 1 + Math.random() * 2, // Reduced speed
+                            color: `hsl(${Math.random() * 60 + 30}, 100%, 70%)` // Yellow/Orange
+                        });
+                        this.lastStarSpawn = now;
+                    }
+
+                    if (now - this.lastAsteroidSpawn > asteroidInterval) {
+                        this.asteroids.push({
+                            x: Math.random() * canvas.width,
+                            y: -20,
+                            radius: 15 + Math.random() * 15,
+                            speed: 2 + Math.random() * 2 // Reduced speed
+                        });
+                        this.lastAsteroidSpawn = now;
+                    }
+                }
+
+                // Check for collisions with stars and asteroids
+                checkCollisions() {
+                    this.stars.forEach((star, index) => {
+                        if (this.checkCollision(this.player, star, 'star')) {
+                            this.score += 10;
+                            scoreDisplay.textContent = `Score: ${this.score}`;
+                            this.stars.splice(index, 1);
+                        }
+                    });
+
+                    this.asteroids.forEach(asteroid => {
+                        if (this.checkCollision(this.player, asteroid, 'asteroid')) {
+                            this.endGame();
+                        }
+                    });
+                }
+
+                // Generic collision detection function
+                checkCollision(obj1, obj2, type) {
+                    let obj2Width, obj2Height;
+                    if (type === 'star') {
+                        obj2Width = obj2.size;
+                        obj2Height = obj2.size;
+                    } else if (type === 'asteroid') {
+                        obj2Width = obj2.radius * 2;
+                        obj2Height = obj2.radius * 2;
+                    }
+
+                    return obj1.x < obj2.x + obj2Width &&
+                        obj1.x + obj1.width > obj2.x &&
+                        obj1.y < obj2.y + obj2Height &&
+                        obj1.y + obj1.height > obj2.y;
+                }
+
+                // Create explosion particles at a given position
+                createExplosion(x, y) {
+                    for (let i = 0; i < 50; i++) {
+                        this.explosionParticles.push({
+                            x: x + this.player.width / 2,
+                            y: y + this.player.height / 2,
+                            radius: 2,
+                            dx: Math.random() * 6 - 3, // Random x velocity
+                            dy: Math.random() * 6 - 3, // Random y velocity
+                            r: 255, g: 150, b: 0, // Orange color
+                            a: 1 // Alpha (opacity)
+                        });
+                    }
+                }
+
+                // End the game
+                endGame() {
+                    if (this.isGameOver) return; // Prevent multiple calls
+                    this.isGameOver = true;
+                    // Create the explosion at the player's last position
+                    this.createExplosion(this.player.x, this.player.y);
+                    this.player.width = 0; // Hide the player
+                    this.player.height = 0;
+                    this.stars = [];
+                    this.asteroids = [];
+                    finalScoreDisplay.textContent = `Your Score: ${this.score}`;
+                    // The game over message is now displayed after the explosion animation
+                }
+            }
+
+            // --- Event Listeners for Game Control and UI ---
+
+            // Keyboard input
+            const handleKeyDown = (e) => {
+                if (game && !game.isGameOver) {
+                    if (e.key === 'ArrowRight' || e.key === 'd') {
+                        game.player.dx = game.player.speed;
+                    } else if (e.key === 'ArrowLeft' || e.key === 'a') {
+                        game.player.dx = -game.player.speed;
+                    } else if (e.key === 'ArrowUp' || e.key === 'w') {
+                        game.player.dy = -game.player.speed;
+                    } else if (e.key === 'ArrowDown' || e.key === 's') {
+                        game.player.dy = game.player.speed;
+                    }
+                }
+            };
+            const handleKeyUp = (e) => {
+                if (game && !game.isGameOver) {
+                    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'd') {
+                        game.player.dx = 0;
+                    }
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'w' || e.key === 's') {
+                        game.player.dy = 0;
+                    }
+                }
+            };
+            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keyup', handleKeyUp);
+
+            // Mouse and touch input for player movement
+            const handleMouseMove = (e) => {
+                if (game && !game.isGameOver) {
+                    game.player.x = e.clientX - canvas.offsetLeft - game.player.width / 2;
+                }
+            };
+            const handleTouchMove = (e) => {
+                if (game && !game.isGameOver) {
+                    const touch = e.touches[0];
+                    game.player.x = touch.clientX - canvas.offsetLeft - game.player.width / 2;
+                    e.preventDefault(); // Prevent scrolling
+                }
+            };
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('touchmove', handleTouchMove);
+
+            // Start/Restart button functionality
+            const startGame = () => {
+                gameUI.style.display = 'none';
+                startScreen.style.display = 'none';
+                gameOverMessage.style.display = 'none';
+                scoreDisplay.style.display = 'block';
+                game = new StarCatcherGame();
+                game.init();
+            };
+            startButton.addEventListener('click', startGame);
+            restartButton.addEventListener('click', startGame);
+
+            // Resize the canvas to fit the window
+            const resizeCanvas = () => {
+                canvas.width = window.innerWidth * 0.9;
+                canvas.height = window.innerHeight * 0.9;
+                if (game && !game.isGameOver) {
+                    game.player.y = canvas.height - 60;
+                }
+            };
+
+            // Initial resize and event listener for window resize
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+        });
+    </script>
+</body>
+</html>
