@@ -16,6 +16,32 @@
             justify-content: center;
             min-height: 100vh;
             margin: 0;
+            position: relative; /* Needed for absolute positioning of the back button */
+        }
+        /* New style for the back button */
+        #back-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 70px;
+            height: 70px;
+            background-color: #2e8b57;
+            color: white;
+            border-radius: 50%; /* Makes it round */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+            z-index: 10; /* Ensure it's on top of other content */
+        }
+        #back-button:hover {
+            background-color: #246b44;
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
         }
         h1 {
             color: #2e8b57;
@@ -39,6 +65,15 @@
             justify-content: center;
             gap: 10px;
             margin-bottom: 20px;
+        }
+        /* Style for the new problem text label */
+        .problem-text-label {
+            font-size: 22px;
+            color: #333;
+            font-weight: bold;
+            margin-bottom: 15px;
+            min-height: 30px; /* To prevent layout shift */
+            direction: rtl; /* Ensure text is right-to-left */
         }
         .vertical-math {
             font-size: 24px;
@@ -249,6 +284,9 @@
     </style>
 </head>
 <body>
+    <!-- Moved and updated back button -->
+    <a href="../index.html" id="back-button">חזרה</a>
+
     <h1>תרגילי חשבון</h1>
     <div class="game-container">
         <div class="controls-top">
@@ -257,6 +295,8 @@
             <button id="new-multiplication-button">תרגיל כפל חדש</button>
             <button id="new-division-button">תרגיל חילוק חדש</button>
         </div>
+        <!-- New element for the division text label -->
+        <div id="problem-text-label" class="problem-text-label"></div>
         <div class="vertical-math" id="math-problem-container">
             <p>בחר סוג תרגיל כדי להתחיל!</p>
         </div>
@@ -274,6 +314,7 @@
         let currentProblemChecked = false; // To prevent multiple scoring per problem
 
         const mathProblemContainer = document.getElementById('math-problem-container');
+        const problemLabel = document.getElementById('problem-text-label');
         const feedbackEl = document.getElementById('feedback');
         const scoreDisplay = document.getElementById('score');
         const checkAnswerButton = document.getElementById('check-answer-button');
@@ -291,6 +332,52 @@
         function updateScoreDisplay() {
             scoreDisplay.textContent = `ניקוד: ${score}`;
         }
+
+        /**
+         * Converts a number up to 999 into its Hebrew text representation.
+         * @param {number} n The number to convert.
+         * @returns {string} The number in Hebrew words.
+         */
+        function numberToHebrew(n) {
+            if (n === 0) return "אפס";
+            if (n > 999) return n.toString(); // Not handling thousands as dividend is max 999.
+
+            const unitsF = ["", "אחת", "שתיים", "שלוש", "ארבע", "חמש", "שש", "שבע", "שמונה", "תשע"];
+            const tens = ["", "עשר", "עשרים", "שלושים", "ארבעים", "חמישים", "שישים", "שבעים", "שמונים", "תשעים"];
+            const teens = ["עשר", "אחת עשרה", "שתים עשרה", "שלוש עשרה", "ארבע עשרה", "חמש עשרה", "שש עשרה", "שבע עשרה", "שמונה עשרה", "תשע עשרה"];
+
+            let parts = [];
+            const hundreds = Math.floor(n / 100);
+            const remainder = n % 100;
+
+            if (hundreds > 0) {
+                if (hundreds === 1) parts.push("מאה");
+                else if (hundreds === 2) parts.push("מאתיים");
+                else parts.push(unitsF[hundreds] + " מאות");
+            }
+
+            if (remainder > 0) {
+                if (remainder >= 10 && remainder <= 19) {
+                    parts.push(teens[remainder - 10]);
+                } else {
+                    const tensDigit = Math.floor(remainder / 10);
+                    const unitsDigit = remainder % 10;
+                    if (tensDigit > 0) {
+                        parts.push(tens[tensDigit]);
+                    }
+                    if (unitsDigit > 0) {
+                        // Use "שתיים" for 22, 32, etc., and "שתים" for 2.
+                        if (unitsDigit === 2 && tensDigit > 1) {
+                            parts.push("שתיים");
+                        } else {
+                            parts.push(unitsF[unitsDigit]);
+                        }
+                    }
+                }
+            }
+            return parts.join(" ו");
+        }
+
 
         function markInput(inputElement, isCorrect) {
             // Do not mark memory boxes or brought-down digits
@@ -324,6 +411,7 @@
             currentOperation = 'addition';
             currentProblemChecked = false;
             clearFeedback();
+            problemLabel.textContent = ''; // Clear division label
 
             num1 = getRandomInt(10, 999); // 2 or 3 digits
             num2 = getRandomInt(10, 999); // 2 or 3 digits
@@ -379,6 +467,7 @@
             currentOperation = 'subtraction';
             currentProblemChecked = false;
             clearFeedback();
+            problemLabel.textContent = ''; // Clear division label
 
             // Ensure num1 is larger than num2 for positive result
             num1 = getRandomInt(100, 999); // 3 digits
@@ -434,6 +523,7 @@
             currentOperation = 'multiplication';
             currentProblemChecked = false;
             clearFeedback();
+            problemLabel.textContent = ''; // Clear division label
 
             const multiplicandDigits = getRandomInt(2, 3);
             const multiplierDigits = getRandomInt(1, 3); // Multiplier can be 1 or 2 digits
@@ -549,6 +639,9 @@
 
             num1 = dividend; // Dividend
             num2 = divisor; // Divisor
+
+            // Set the text label for the division problem
+            problemLabel.textContent = `${numberToHebrew(num1)} לחלק ל ${num2}`;
 
             const dividendStr = num1.toString();
             const divisorStr = num2.toString();
@@ -868,45 +961,5 @@
         // Initial problem generation removed - user must select
         // document.addEventListener('DOMContentLoaded', generateMultiplicationProblem);
     </script>
-    <a href="../index.html" class="inline-block px-4 py-2 mt-4 mr-4 text-sm font-semibold text-blue-500 hover:text-blue-700">
-        &lt; חזרה
-    </a>
 </body>
 </html>
-<!DOCTYPE html>
-<html lang="he">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>תרגילי חשבון</title>
-    <style>
-        body {
-            font-family: "Arial Hebrew", "Helvetica Neue", Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-            background-color: #f0f8ff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-        h1 {
-            color: #2e8b57;
-            margin-bottom: 20px;
-        }
-        .game-container {
-            margin-top: 20px;
-            background-color: #ffffff;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            width: 90%;
-            max-width: 600px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .controls-top {
-            display: flex;
