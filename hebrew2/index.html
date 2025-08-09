@@ -356,7 +356,7 @@
                         this.hasDrawn = true;
                         // In startDrawing, make lineWidth dynamic:
                         const fontSize = Math.min(guideCanvas.width, guideCanvas.height) * 0.5;
-                        this.lineWidth = Math.max(4, fontSize * 0.06); // ~% of letter size, min 4px
+                        this.lineWidth = Math.max(4, fontSize * 0.05); // ~% of letter size, min 4px
                         drawingCtx.beginPath();
                         drawingCtx.moveTo(pos.x, pos.y);
                         drawingCtx.lineWidth = this.lineWidth;
@@ -429,7 +429,7 @@
                     const overlapPercentage = (matchedPixels / totalGuidePixels) * 100;
                     const outsideRatio = outsidePixels / matchedPixels * 100;
                     const requiredOverlap = 65; 
-                    const allowedOutside = 25; // Allow up to 25% outside
+                    const allowedOutside = 35; // Allow up to 35% outside
         
                     if (overlapPercentage >= requiredOverlap && outsideRatio <= allowedOutside) {
                         messageDisplay.textContent = successMessages[Math.floor(Math.random() * successMessages.length)];
