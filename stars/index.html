@@ -529,13 +529,8 @@
             };
             
             const goToMainMenu = () => {
-                // In this environment, we'll just show the start screen again.
-                gameUI.style.display = 'flex';
-                startScreen.style.display = 'flex';
-                gameOverScreen.style.display = 'none';
-                if (game) {
-                    game.isGameOver = true;
-                }
+                // This function is now correctly linked to the exit button
+                window.location.href = '../index.html';
             };
 
             // Event listeners
