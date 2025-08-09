@@ -344,15 +344,22 @@
                     };
                     
                     const startDrawing = (e) => {
-                        if (e.target.closest('#game-controls, #exitButton')) return;
+                        // Check if the event target is one of the UI buttons. If so, don't draw.
+                        if (e.target.closest('#game-controls, #exitButton')) {
+                            return;
+                        }
                         e.preventDefault();
                         const pos = getMousePos(e);
                         if (!pos) return;
+                        
                         this.isDrawing = true;
                         this.hasDrawn = true;
+                        // In startDrawing, make lineWidth dynamic:
+                        const fontSize = Math.min(guideCanvas.width, guideCanvas.height) * 0.5;
+                        this.lineWidth = Math.max(4, fontSize * 0.06); // ~% of letter size, min 4px
                         drawingCtx.beginPath();
                         drawingCtx.moveTo(pos.x, pos.y);
-                        drawingCtx.lineWidth = 20;
+                        drawingCtx.lineWidth = this.lineWidth;
                         drawingCtx.lineCap = 'round';
                         drawingCtx.lineJoin = 'round';
                         drawingCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
@@ -444,9 +451,19 @@
         
                 speakLetter() {
                     if ('speechSynthesis' in window) {
+                        window.speechSynthesis.cancel(); // Stop any ongoing speech
                         const utterance = new SpeechSynthesisUtterance(this.currentLetter);
                         utterance.lang = 'he-IL';
+                        
+                        // Try to find a Hebrew voice
+                        const voices = window.speechSynthesis.getVoices();
+                        const hebVoice = voices.find(v => v.lang === 'he-IL') || voices.find(v => v.lang.startsWith('he'));
+                        if (hebVoice) utterance.voice = hebVoice;
+                
+                        // On iOS Safari, call directly inside button click
                         window.speechSynthesis.speak(utterance);
+                    } else {
+                        alert("הדפדפן לא תומך בקריאת טקסט");
                     }
                 }
         
