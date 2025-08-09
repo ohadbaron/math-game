@@ -269,37 +269,50 @@
             const gameOverScreen = document.getElementById('game-over-screen');
             const gameUI = document.getElementById('game-ui');
             const messageDisplay = document.getElementById('message-display');
-            
+        
+            // Speaker button
+            const speakerButton = document.createElement('button');
+            speakerButton.className = "button";
+            speakerButton.textContent = "🔊";
+            speakerButton.style.display = "none";
+            document.getElementById('game-controls').appendChild(speakerButton);
+        
             let game;
-
-            // An array with all 22 Hebrew letters
+        
             const letterData = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת'];
             const successMessages = ["כל הכבוד!", "מצוין!", "הצלחת!", "מעולה!"];
             const failMessages = ["נסיון נוסף...", "נסו שוב", "כמעט!"];
-
+        
+            // Shuffle helper
+            const shuffleArray = (arr) => {
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            };
+        
             class Game {
                 constructor() {
                     this.currentLetterIndex = 0;
                     this.isDrawing = false;
-                    this.hasDrawn = false; // Flag to check if any drawing has occurred
+                    this.hasDrawn = false;
                 }
                 
                 init() {
+                    this.lettersOrder = shuffleArray([...letterData]); // random order
                     this.currentLetterIndex = 0;
                     this.loadLetter(this.currentLetterIndex);
                     this.setupEventListeners();
                 }
-
+        
                 loadLetter(index) {
-                    // Check if all letters have been completed
-                    if (index >= letterData.length) {
+                    if (index >= this.lettersOrder.length) {
                         this.showGameOverScreen();
                         return;
                     }
                     
-                    this.currentLetter = letterData[index];
-                    
-                    // Clear both canvases
+                    this.currentLetter = this.lettersOrder[index];
                     drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
                     guideCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
                     
@@ -307,49 +320,34 @@
                     this.hasDrawn = false;
                     this.drawGuideLetter();
                 }
-
+        
                 drawGuideLetter() {
-                    guideCtx.clearRect(0, 0, guideCanvas.width, guideCtx.height);
-                    
-                    // Use the user's preferred font for the guide
-                    const fontSize = Math.min(guideCanvas.width, guideCanvas.height) * 0.5; // 50% of the smaller dimension
+                    guideCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
+                    const fontSize = Math.min(guideCanvas.width, guideCanvas.height) * 0.5;
                     guideCtx.font = `bold ${fontSize}px Assistant`;
                     guideCtx.textAlign = 'center';
                     guideCtx.textBaseline = 'middle';
-                    
-                    // Set the color for the guide letter
                     guideCtx.fillStyle = 'rgba(80, 250, 123, 0.2)';
                     guideCtx.shadowColor = 'rgba(80, 250, 123, 0.5)';
                     guideCtx.shadowBlur = 15;
-                    
-                    // Draw the letter in the center of the canvas
                     guideCtx.fillText(this.currentLetter, guideCanvas.width / 2, guideCanvas.height / 2);
                     guideCtx.shadowBlur = 0;
                 }
                 
                 setupEventListeners() {
                     const rect = drawingCanvas.getBoundingClientRect();
-                    
                     const getMousePos = (e) => {
                         let clientX = e.clientX || (e.touches && e.touches[0].clientX);
                         let clientY = e.clientY || (e.touches && e.touches[0].clientY);
                         if (clientX === undefined || clientY === undefined) return null;
-                        
-                        return {
-                            x: clientX - rect.left,
-                            y: clientY - rect.top
-                        };
+                        return { x: clientX - rect.left, y: clientY - rect.top };
                     };
                     
                     const startDrawing = (e) => {
-                        // Check if the event target is one of the UI buttons. If so, don't draw.
-                        if (e.target.closest('#game-controls, #exitButton')) {
-                            return;
-                        }
+                        if (e.target.closest('#game-controls, #exitButton')) return;
                         e.preventDefault();
                         const pos = getMousePos(e);
                         if (!pos) return;
-                        
                         this.isDrawing = true;
                         this.hasDrawn = true;
                         drawingCtx.beginPath();
@@ -361,17 +359,16 @@
                         drawingCtx.shadowColor = 'rgba(255, 255, 255, 0.8)';
                         drawingCtx.shadowBlur = 10;
                     };
-
+        
                     const draw = (e) => {
                         if (!this.isDrawing) return;
                         e.preventDefault();
                         const pos = getMousePos(e);
                         if (!pos) return;
-
                         drawingCtx.lineTo(pos.x, pos.y);
                         drawingCtx.stroke();
                     };
-
+        
                     const stopDrawing = () => {
                         if (this.isDrawing) {
                             this.isDrawing = false;
@@ -387,57 +384,55 @@
                     drawingCanvas.addEventListener('touchmove', draw);
                     drawingCanvas.addEventListener('touchend', stopDrawing);
                 }
-
+        
                 checkDrawing() {
                     if (!this.hasDrawn) {
                         messageDisplay.textContent = "אנא ציירו משהו לפני הבדיקה.";
                         return;
                     }
                     
-                    // Create a temporary, offscreen canvas to render the guide letter's silhouette
                     const tempCanvas = document.createElement('canvas');
                     tempCanvas.width = guideCanvas.width;
                     tempCanvas.height = guideCanvas.height;
                     const tempCtx = tempCanvas.getContext('2d');
-                    
-                    // Draw the guide letter in solid color on the temp canvas
                     const fontSize = Math.min(guideCanvas.width, guideCanvas.height) * 0.5;
                     tempCtx.font = `bold ${fontSize}px Assistant`;
                     tempCtx.textAlign = 'center';
                     tempCtx.textBaseline = 'middle';
-                    tempCtx.fillStyle = '#000000'; // Black color for solid shape
+                    tempCtx.fillStyle = '#000000';
                     tempCtx.fillText(this.currentLetter, tempCanvas.width / 2, tempCanvas.height / 2);
-
-                    // Get image data for both canvases
+        
                     const guideData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height).data;
                     const drawingData = drawingCtx.getImageData(0, 0, drawingCanvas.width, drawingCanvas.height).data;
                     
-                    let totalGuidePixels = 0;
-                    let matchedPixels = 0;
-                    const tolerance = 100; // Check for a non-zero alpha value
-                    
+                    let totalGuidePixels = 0, matchedPixels = 0, outsidePixels = 0;
+                    const tolerance = 100;
+        
                     for (let i = 3; i < guideData.length; i += 4) {
-                        if (guideData[i] > tolerance) {
+                        const inLetter = guideData[i] > tolerance;
+                        const drawn = drawingData[i] > tolerance;
+                        if (inLetter) {
                             totalGuidePixels++;
-                            if (drawingData[i] > tolerance) {
-                                matchedPixels++;
-                            }
+                            if (drawn) matchedPixels++;
+                        } else if (drawn) {
+                            outsidePixels++;
                         }
                     }
                     
                     const overlapPercentage = (matchedPixels / totalGuidePixels) * 100;
-                    const requiredOverlap = 65; // Set a threshold for a successful trace
-                    
-                    if (overlapPercentage >= requiredOverlap) {
-                        const randomMessage = successMessages[Math.floor(Math.random() * successMessages.length)];
-                        messageDisplay.textContent = `${randomMessage}`;
+                    const outsideRatio = outsidePixels / matchedPixels * 100;
+                    const requiredOverlap = 65; 
+                    const allowedOutside = 25; // Allow up to 25% outside
+        
+                    if (overlapPercentage >= requiredOverlap && outsideRatio <= allowedOutside) {
+                        messageDisplay.textContent = successMessages[Math.floor(Math.random() * successMessages.length)];
                         setTimeout(() => {
                             this.currentLetterIndex++;
                             this.loadLetter(this.currentLetterIndex);
-                        }, 1500); // Wait 1.5 seconds before loading the next letter
+                        }, 1500);
                     } else {
-                        const randomMessage = failMessages[Math.floor(Math.random() * failMessages.length)];
-                        messageDisplay.textContent = `${randomMessage} (${Math.round(overlapPercentage)}%)`;
+                        messageDisplay.textContent = failMessages[Math.floor(Math.random() * failMessages.length)] +
+                            ` (${Math.round(overlapPercentage)}% בפנים, ${Math.round(outsideRatio)}% בחוץ)`;
                         this.clearDrawing();
                     }
                 }
@@ -446,7 +441,15 @@
                     drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
                     this.hasDrawn = false;
                 }
-
+        
+                speakLetter() {
+                    if ('speechSynthesis' in window) {
+                        const utterance = new SpeechSynthesisUtterance(this.currentLetter);
+                        utterance.lang = 'he-IL';
+                        window.speechSynthesis.speak(utterance);
+                    }
+                }
+        
                 showGameOverScreen() {
                     gameUI.style.display = 'flex';
                     gameOverScreen.style.display = 'flex';
@@ -454,9 +457,10 @@
                     messageDisplay.style.display = 'none';
                     checkButton.style.display = 'none';
                     clearButton.style.display = 'none';
+                    speakerButton.style.display = 'none';
                 }
             }
-
+        
             const startGame = () => {
                 gameUI.style.display = 'none';
                 startScreen.style.display = 'none';
@@ -464,6 +468,7 @@
                 messageDisplay.style.display = 'block';
                 checkButton.style.display = 'inline-block';
                 clearButton.style.display = 'inline-block';
+                speakerButton.style.display = 'inline-block';
                 
                 game = new Game();
                 game.init();
@@ -480,24 +485,19 @@
             };
             
             const goToMainMenu = () => {
-                // Navigate to the specified URL instead of just showing the main menu
                 window.location.href = '../index.html';
             };
-
-            // Event listeners
+        
             startButton.addEventListener('click', startGame);
             restartButton.addEventListener('click', startGame);
             exitButton.addEventListener('click', goToMainMenu);
-            checkButton.addEventListener('click', () => {
-                if (game) game.checkDrawing();
-            });
-            clearButton.addEventListener('click', () => {
-                if (game) game.clearDrawing();
-            });
-
+            checkButton.addEventListener('click', () => game && game.checkDrawing());
+            clearButton.addEventListener('click', () => game && game.clearDrawing());
+            speakerButton.addEventListener('click', () => game && game.speakLetter());
+        
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
         });
-    </script>
+        </script>        
 </body>
 </html>
